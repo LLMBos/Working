@@ -1,0 +1,2212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RIA POC — Project Overview and Journey Map</title>
+<style>
+  :root {
+    --ink: #1A1A2E;
+    --navy: #16213E;
+    --coral: #E94560;
+    --body: #333333;
+    --muted: #666666;
+    --light: #808080;
+    --adv-tint: #EEF0F7;
+    --cli-tint: #FBE9EC;
+    --zone-tint: #F5F5F8;
+    --ai-tint: #F7F9F4;
+    --ops-tint: #F4F1F7;
+    --page-bg: #FAFAF8;
+    --card-border: #E0E0E5;
+    --font-sans: "Aptos", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: var(--font-sans);
+    color: var(--body);
+    background: var(--page-bg);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* ── Chrome: phase rail + controls ─────────────────────────────── */
+  .chrome {
+    position: fixed; top: 0; left: 0; right: 0;
+    height: 56px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 32px;
+    background: rgba(250, 250, 248, 0.92);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--card-border);
+    z-index: 100;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .chrome-left { display: flex; align-items: center; gap: 14px; }
+  .chrome-mark { font-weight: 700; color: var(--ink); letter-spacing: 0.12em; }
+  .chrome-rail { display: flex; gap: 6px; margin-left: 18px; }
+  .rail-dot {
+    width: 24px; height: 4px;
+    background: #D8D8DD;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+  }
+  .rail-dot.active { background: var(--coral); transform: scaleY(1.6); }
+  .rail-dot.seen { background: var(--navy); }
+  .rail-dot:hover { background: var(--navy); }
+
+  .chrome-right { display: flex; align-items: center; gap: 20px; }
+  .slide-counter { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .chrome-btn {
+    background: transparent; border: 1px solid var(--card-border);
+    padding: 6px 12px; border-radius: 14px;
+    font-family: inherit; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--muted); cursor: pointer;
+    transition: all 0.15s;
+  }
+  .chrome-btn:hover { border-color: var(--ink); color: var(--ink); }
+
+  /* ── Slide container ───────────────────────────────────────────── */
+  .deck {
+    position: absolute; top: 56px; left: 0; right: 0; bottom: 48px;
+    overflow: hidden;
+  }
+  .slide {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    padding: 48px 72px;
+    overflow-y: auto;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.32s ease;
+    display: flex; flex-direction: column;
+  }
+  .slide.active { opacity: 1; pointer-events: auto; }
+
+  /* ── Footer ────────────────────────────────────────────────────── */
+  .foot {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    height: 48px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 32px;
+    background: rgba(250, 250, 248, 0.92);
+    backdrop-filter: blur(8px);
+    border-top: 1px solid var(--card-border);
+    z-index: 100;
+    font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--light);
+  }
+  .key { display: inline-block; padding: 2px 7px; border: 1px solid var(--card-border);
+         border-radius: 4px; color: var(--muted); font-size: 9px; margin: 0 2px; letter-spacing: 0.02em; }
+
+  /* ── Cover slide ───────────────────────────────────────────────── */
+  .cover { justify-content: center; align-items: center; text-align: center; padding: 0 96px; }
+  .cover-project { font-size: 14px; font-weight: 700; letter-spacing: 0.24em;
+                   color: var(--ink); text-transform: uppercase; margin-bottom: 24px; }
+  .cover-title { font-size: 96px; font-weight: 800; letter-spacing: -0.02em;
+                 color: var(--coral); text-transform: uppercase; line-height: 0.95;
+                 margin-bottom: 32px; }
+  .cover-sub { font-size: 22px; color: var(--navy); font-style: italic;
+               max-width: 640px; line-height: 1.35; margin-bottom: 56px; }
+  .cover-meta { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;
+                color: var(--muted); }
+  .cover-meta span { color: var(--ink); font-weight: 600; }
+
+  /* ── How-to-read slide ─────────────────────────────────────────── */
+  .read-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px;
+    margin-top: 36px; max-width: 1100px;
+  }
+  .read-card {
+    padding: 24px 22px; border-radius: 10px;
+    border: 0.5px solid var(--card-border);
+  }
+  .read-card.auto { background: #EDF4EF; border-left: 3px solid #3B6D11; }
+  .read-card.agent { background: var(--ops-tint); border-left: 3px solid #6B5B7A; }
+  .read-card.trust { background: #EDEAE3; border-left: 3px solid #7A6A52; }
+  .read-card h4 { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+                  color: var(--ink); margin-bottom: 10px; font-weight: 700; }
+  .read-card p { font-size: 14px; color: var(--body); line-height: 1.5; }
+
+  .read-structure {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+    margin-top: 28px; max-width: 1100px;
+  }
+  .read-structure > div { padding: 18px 20px; border-radius: 10px; font-size: 13px;
+                          line-height: 1.55; }
+  .read-structure .adv-half { background: var(--adv-tint); border-left: 3px solid var(--navy); }
+  .read-structure .cli-half { background: var(--cli-tint); border-left: 3px solid var(--coral); }
+  .read-structure strong { color: var(--ink); font-size: 11px;
+                           letter-spacing: 0.1em; text-transform: uppercase;
+                           display: block; margin-bottom: 8px; }
+  .read-structure .adv-half strong { color: var(--navy); }
+  .read-structure .cli-half strong { color: var(--coral); }
+
+  /* ── Phase slides ──────────────────────────────────────────────── */
+  .phase-hero {
+    display: flex; align-items: baseline; gap: 28px; margin-bottom: 6px;
+  }
+  .phase-num {
+    font-size: 128px; font-weight: 800; color: var(--coral); line-height: 0.85;
+    letter-spacing: -0.04em; opacity: 0.18;
+  }
+  .phase-title-block { flex: 1; padding-bottom: 10px; }
+  .phase-kicker {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--coral); margin-bottom: 8px;
+  }
+  .phase-title {
+    font-size: 52px; font-weight: 700; color: var(--navy);
+    line-height: 1.05; letter-spacing: -0.015em; margin-bottom: 10px;
+  }
+  .phase-sub {
+    font-size: 16px; color: var(--muted); font-style: italic; max-width: 760px;
+  }
+  .phase-summary {
+    font-size: 15px; color: var(--body); line-height: 1.55;
+    max-width: 960px; margin: 18px 0 28px;
+  }
+
+  .tracks {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 22px;
+  }
+  .track {
+    padding: 20px 22px 18px; border-radius: 12px;
+    border: 0.5px solid var(--card-border);
+  }
+  .track.advisor { background: var(--adv-tint); }
+  .track.client { background: var(--cli-tint); }
+  .track-label {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    font-weight: 700; margin-bottom: 14px;
+  }
+  .track.advisor .track-label { color: var(--navy); }
+  .track.client .track-label { color: var(--coral); }
+  .track-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+  }
+  .track.advisor .track-dot { background: var(--navy); }
+  .track.client .track-dot {
+    background: var(--coral);
+    border-radius: 2px;  /* square for client */
+  }
+  .track-item { margin-bottom: 12px; padding-bottom: 12px;
+                border-bottom: 1px solid rgba(0,0,0,0.06); }
+  .track-item:last-child { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
+  .track-item-title {
+    font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 5px;
+    display: flex; align-items: baseline; gap: 8px;
+  }
+  .track-num { color: var(--muted); font-weight: 600; font-size: 11px; }
+  .track-item-body { font-size: 12.5px; color: var(--body); line-height: 1.5; }
+
+  /* ── Intersection zone ─────────────────────────────────────────── */
+  .zone {
+    background: var(--ink); color: #fff; padding: 18px 24px;
+    border-radius: 10px; margin-bottom: 22px;
+  }
+  .zone-label {
+    font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+    font-weight: 700; color: var(--coral); margin-bottom: 6px;
+  }
+  .zone-title {
+    font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 8px;
+  }
+  .zone-body { font-size: 13px; color: #D8D8DF; line-height: 1.55; }
+
+  /* ── Moments ───────────────────────────────────────────────────── */
+  .moments-head {
+    display: flex; align-items: center; gap: 14px;
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 12px;
+  }
+  .moments-head strong { color: var(--ink); font-weight: 700; }
+  .moments-hint { color: var(--coral); font-style: italic; font-size: 10px;
+                  letter-spacing: 0.08em; text-transform: none; }
+  .moments {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 12px;
+  }
+  .moment {
+    padding: 14px 16px; border-radius: 10px;
+    cursor: pointer;
+    border: 0.5px solid var(--card-border);
+    transition: background 0.18s, border-color 0.18s, transform 0.18s;
+    position: relative; overflow: hidden;
+  }
+  .moment.ai { background: var(--ai-tint); }
+  .moment.ops { background: var(--ops-tint); }
+  .moment:hover { transform: translateY(-2px); border-color: var(--navy); }
+  .moment-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+  .moment-num {
+    font-size: 22px; font-weight: 800; color: var(--ink); letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .moment.ops .moment-num { color: #6B5B7A; }
+  .moment-title { font-size: 13px; font-weight: 700; color: var(--navy); flex: 1; }
+  .moment-kind {
+    font-size: 10px; font-style: italic; color: var(--coral);
+    letter-spacing: 0.02em;
+  }
+  .moment-body {
+    font-size: 12px; color: var(--body); line-height: 1.5;
+    max-height: 0; opacity: 0; overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.25s ease, margin-top 0.3s;
+    margin-top: 0;
+  }
+  .moment.open .moment-body {
+    max-height: 200px; opacity: 1; margin-top: 10px;
+  }
+  .moment-caret {
+    position: absolute; top: 12px; right: 14px;
+    font-size: 10px; color: var(--muted);
+    transition: transform 0.2s;
+  }
+  .moment.open .moment-caret { transform: rotate(180deg); color: var(--coral); }
+  .moment-tag {
+    display: inline-block; font-size: 9px; font-weight: 700;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 2px 7px; border-radius: 3px; margin-right: 6px;
+  }
+  .moment.ai .moment-tag { background: #DDE8D4; color: #27500A; }
+  .moment.ops .moment-tag { background: #E6DCEB; color: #4F345C; }
+
+  /* ── Zones summary ─────────────────────────────────────────────── */
+  .zones-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 28px;
+    max-width: 1200px;
+  }
+  .zsum {
+    padding: 20px 24px; border-radius: 10px;
+    background: #fff; border: 0.5px solid var(--card-border);
+    border-left: 4px solid var(--coral);
+  }
+  .zsum-kicker {
+    font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 4px; font-weight: 700;
+  }
+  .zsum-title { font-size: 17px; color: var(--navy); font-weight: 700;
+                margin-bottom: 8px; }
+  .zsum-body { font-size: 13px; color: var(--body); line-height: 1.55; }
+
+  /* ── Matrix slide ──────────────────────────────────────────────── */
+  .matrix-wrap {
+    margin-top: 22px; overflow-x: auto; padding-bottom: 6px;
+  }
+  .matrix {
+    border-collapse: separate; border-spacing: 3px;
+    font-family: inherit; width: 100%;
+  }
+  .matrix th, .matrix td {
+    padding: 0; text-align: center;
+    font-weight: 500; vertical-align: middle;
+  }
+  .matrix-colhead {
+    padding: 6px 0 10px; font-size: 10px;
+    letter-spacing: 0.08em; color: var(--muted); font-weight: 700;
+    border-bottom: 1px solid var(--card-border);
+    min-width: 38px;
+  }
+  .matrix-colhead.ops-head { color: #6B5B7A; }
+  .matrix-rowhead {
+    text-align: left !important; padding: 10px 14px !important;
+    background: #fff; border-radius: 8px;
+    min-width: 200px;
+  }
+  .mr-num { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+            color: var(--coral); font-weight: 700; margin-bottom: 2px; }
+  .mr-title { font-size: 13px; color: var(--ink); font-weight: 700; }
+  .matrix-cell {
+    width: 38px; height: 48px;
+    border-radius: 6px; background: #F5F5F3;
+    position: relative;
+  }
+  .matrix-cell.filled.journey {
+    background: #DDE8D4; cursor: pointer;
+    border: 1px solid #B8CDA5;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .matrix-cell.filled.journey:hover {
+    transform: scale(1.15); box-shadow: 0 4px 10px -4px rgba(39,80,10,0.4);
+    z-index: 5;
+  }
+  .matrix-cell.filled.ops {
+    background: #E6DCEB; cursor: pointer;
+    border: 1px solid #C8B5D1;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .matrix-cell.filled.ops:hover {
+    transform: scale(1.15); box-shadow: 0 4px 10px -4px rgba(79,52,92,0.4);
+    z-index: 5;
+  }
+  .matrix-cell-num {
+    font-size: 12px; font-weight: 800; letter-spacing: -0.02em;
+  }
+  .matrix-cell.filled.journey .matrix-cell-num { color: #27500A; }
+  .matrix-cell.filled.ops .matrix-cell-num { color: #4F345C; }
+
+  .matrix-total {
+    text-align: center !important;
+    font-size: 16px; font-weight: 800; color: var(--muted);
+    padding: 10px 0 !important;
+    letter-spacing: -0.02em;
+    min-width: 46px;
+  }
+  .matrix-total.hot {
+    color: var(--coral); font-size: 22px;
+  }
+  .matrix-total-label {
+    font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--muted); font-weight: 700; padding-left: 14px !important;
+  }
+  .matrix-row.hot-row .matrix-rowhead {
+    background: #FFF5F7; box-shadow: inset 3px 0 0 var(--coral);
+  }
+  .matrix-sep {
+    padding: 8px 0 2px !important; font-size: 10px;
+    letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--muted); font-weight: 700; text-align: left !important;
+  }
+  .matrix-legend {
+    display: flex; gap: 32px; margin-top: 24px; align-items: center;
+  }
+  .leg-item {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 12px; color: var(--body);
+  }
+  .leg-swatch {
+    display: inline-block; width: 16px; height: 16px; border-radius: 4px;
+  }
+  .leg-swatch.journey { background: #DDE8D4; border: 1px solid #B8CDA5; }
+  .leg-swatch.ops { background: #E6DCEB; border: 1px solid #C8B5D1; }
+  .matrix-takeaway {
+    margin-top: 18px; padding: 16px 22px;
+    background: var(--ink); color: #fff;
+    border-radius: 10px; max-width: 780px;
+    font-size: 14px; line-height: 1.55;
+  }
+  .matrix-takeaway strong { color: var(--coral); }
+
+  /* ── Overview slides (1.1 – 1.7) ─────────────────────────────── */
+
+  /* 1.1 Mission — time allocation compare */
+  .mission-compare {
+    display: grid; grid-template-columns: 1fr 48px 1fr; gap: 20px;
+    margin-top: 26px; align-items: stretch; max-width: 1160px;
+  }
+  .tm-col {
+    background: #fff; border: 0.5px solid var(--card-border);
+    border-radius: 12px; padding: 20px 22px 22px;
+    display: flex; flex-direction: column;
+  }
+  .tm-col.today    { border-top: 4px solid var(--coral); }
+  .tm-col.platform { border-top: 4px solid #2E7D4F; }
+  .tm-label {
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--muted); font-weight: 700; margin-bottom: 4px;
+  }
+  .tm-heading { font-size: 20px; color: var(--navy); font-weight: 700; margin-bottom: 14px; }
+  .tm-bar {
+    display: flex; height: 44px; width: 100%;
+    border-radius: 6px; overflow: hidden; margin-bottom: 16px;
+    border: 0.5px solid var(--card-border);
+  }
+  .tm-seg {
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; color: #fff; font-weight: 700;
+  }
+  .tm-seg.admin    { background: #B84A5F; }
+  .tm-seg.tools    { background: #D97284; }
+  .tm-seg.reactive { background: #E89BA9; color: #6B1122; }
+  .tm-seg.client   { background: #4A5A8A; }
+  .tm-seg.growth   { background: #BEC5D6; color: #202840; }
+  .tm-seg.baseline { background: #C5D5BA; color: #2E4A1E; }
+  .tm-seg.enhanced { background: #16213E; }
+  .tm-seg.open     { background: #2E7D4F; }
+  .tm-legend {
+    display: flex; flex-direction: column; gap: 6px;
+    font-size: 12px; color: var(--body); margin-top: auto;
+  }
+  .tm-legend-row { display: flex; align-items: center; gap: 10px; }
+  .tm-legend .dot {
+    display: inline-block; width: 12px; height: 12px; border-radius: 3px;
+    flex-shrink: 0;
+  }
+  .tm-arrow {
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px; color: var(--coral); font-weight: 300;
+  }
+
+  /* 1.2 Goals */
+  .goals-wrap { margin-top: 22px; max-width: 1180px; }
+  .goals-kicker {
+    font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--muted); font-weight: 700; margin-bottom: 10px;
+    padding-bottom: 4px; border-bottom: 1px solid var(--card-border);
+  }
+  .goals-row        { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 18px; }
+  .goals-row.secondary { grid-template-columns: repeat(3, 1fr); max-width: 820px; }
+  .goal-card {
+    background: #fff; border: 0.5px solid var(--card-border);
+    border-top: 3px solid var(--coral);
+    border-radius: 10px; padding: 14px 14px 16px;
+    display: flex; flex-direction: column;
+  }
+  .goal-card.secondary { border-top-color: var(--navy); background: #FAFAFC; }
+  .goal-num {
+    font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--coral); font-weight: 700; margin-bottom: 5px;
+  }
+  .goal-card.secondary .goal-num { color: var(--navy); }
+  .goal-title { font-size: 14px; font-weight: 700; color: var(--navy); line-height: 1.25; margin-bottom: 6px; }
+  .goal-sub   { font-size: 12px; color: var(--body); line-height: 1.45; }
+
+  /* 1.3 Three roles */
+  .roles-wrap {
+    margin-top: 24px; max-width: 1160px;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+  }
+  .role-card {
+    background: #fff; border: 0.5px solid var(--card-border);
+    border-radius: 12px; padding: 20px 22px 18px;
+    display: flex; flex-direction: column; position: relative;
+  }
+  .role-card.planner { border-left: 4px solid #3A5F8F; }
+  .role-card.manager { border-left: 4px solid var(--coral); }
+  .role-card.owner   { border-left: 4px solid #6B4F7A; }
+  .role-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: #F5F5F8; color: var(--muted);
+    font-size: 11px; font-weight: 700; margin-bottom: 10px;
+  }
+  .role-card.planner .role-num { background: #EAF0F8; color: #3A5F8F; }
+  .role-card.manager .role-num { background: #FBE9EC; color: var(--coral); }
+  .role-card.owner   .role-num { background: #F0EAF4; color: #6B4F7A; }
+  .role-name {
+    font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--muted); font-weight: 700; margin-bottom: 2px;
+  }
+  .role-title { font-size: 19px; color: var(--navy); font-weight: 700; margin-bottom: 10px; }
+  .role-body  { font-size: 13px; color: var(--body); line-height: 1.5; margin-bottom: 12px; }
+  .role-want  {
+    font-size: 11.5px; font-style: italic; color: var(--muted);
+    border-top: 1px dashed var(--card-border); padding-top: 8px;
+  }
+  .role-want strong { color: var(--navy); font-style: normal; }
+  .roles-shared {
+    margin-top: 20px; padding: 16px 24px;
+    background: var(--ink); color: #fff; border-radius: 10px;
+    max-width: 1160px;
+  }
+
+  /* 1.3 — Venn version */
+  .venn-wrap {
+    margin: 16px auto 0; max-width: 780px; width: 100%;
+  }
+  .venn-stage {
+    position: relative; width: 100%;
+    aspect-ratio: 900 / 620;
+  }
+  .venn-circles { width: 100%; height: 100%; display: block; }
+  .venn-label {
+    position: absolute;
+    background: #fff;
+    padding: 10px 14px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--card-border);
+    text-align: center; min-width: 150px; max-width: 200px;
+    box-shadow: 0 3px 10px -4px rgba(0,0,0,0.15);
+  }
+  .venn-label.planner { border-left: 4px solid #3A5F8F; }
+  .venn-label.manager { border-left: 4px solid var(--coral); }
+  .venn-label.owner   { border-left: 4px solid #6B4F7A; }
+  .venn-role-num {
+    font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+    font-weight: 700; color: var(--muted); margin-bottom: 3px;
+  }
+  .venn-label.planner .venn-role-num { color: #3A5F8F; }
+  .venn-label.manager .venn-role-num { color: var(--coral); }
+  .venn-label.owner   .venn-role-num { color: #6B4F7A; }
+  .venn-role-title { font-size: 14px; font-weight: 700; color: var(--navy); line-height: 1.2; }
+  .venn-role-want  { font-size: 11px; font-style: italic; color: var(--muted); margin-top: 5px; }
+  .venn-center {
+    position: absolute; left: 50%; top: 48%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    background: rgba(255,255,255,0.94);
+    padding: 10px 18px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--card-border);
+    box-shadow: 0 3px 10px -4px rgba(0,0,0,0.1);
+  }
+  .venn-center-head {
+    font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--coral); font-weight: 700; margin-bottom: 5px;
+  }
+  .venn-center-line {
+    font-size: 12px; color: var(--ink); font-weight: 700; line-height: 1.35;
+  }
+  .shared-label {
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--coral); font-weight: 700; margin-bottom: 6px;
+  }
+  .shared-body { font-size: 13.5px; line-height: 1.55; color: #fff; }
+
+  /* 1.4 Pain points */
+  .pain-grid {
+    margin-top: 22px; max-width: 1180px;
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;
+  }
+  .pain-tile {
+    background: #fff; border: 0.5px solid var(--card-border);
+    border-top: 4px solid var(--coral);
+    border-radius: 10px; padding: 16px 14px 16px;
+    display: flex; flex-direction: column; min-height: 190px;
+  }
+  .pain-num {
+    font-size: 34px; line-height: 1; color: var(--coral);
+    font-weight: 700; letter-spacing: -0.02em; margin-bottom: 6px;
+  }
+  .pain-title {
+    font-size: 13px; font-weight: 700; color: var(--navy);
+    line-height: 1.25; margin-bottom: 10px;
+  }
+  .pain-stat {
+    font-size: 11.5px; color: var(--body); line-height: 1.45;
+    border-top: 1px dashed var(--card-border); padding-top: 8px; margin-top: auto;
+  }
+  .pain-stat strong { color: var(--coral); }
+  .pain-summary {
+    margin-top: 18px; padding: 12px 20px;
+    background: var(--ink); color: #fff; border-radius: 10px;
+    font-size: 12.5px; line-height: 1.55; max-width: 1180px;
+  }
+  .pain-summary strong { color: var(--coral); }
+
+  /* 1.5 How Might We */
+  .hmw-stack {
+    margin-top: 26px; display: flex; flex-direction: column; gap: 14px;
+    max-width: 1180px;
+  }
+  .hmw-row {
+    display: grid; grid-template-columns: 88px 1fr;
+    background: #F7F7F9; border-radius: 12px; overflow: hidden;
+    min-height: 96px;
+  }
+  .hmw-num {
+    background: var(--ink); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px; font-weight: 700; letter-spacing: -0.01em;
+  }
+  .hmw-body {
+    padding: 20px 30px;
+    font-size: 19px; line-height: 1.45; color: var(--ink);
+    align-self: center;
+  }
+  .hmw-body strong { color: var(--coral); }
+
+  /* 1.6 Design principles */
+  .prin-grid {
+    margin-top: 22px; max-width: 1180px;
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;
+  }
+  .prin-tile {
+    background: #fff; border: 0.5px solid var(--card-border);
+    border-radius: 10px; padding: 20px 16px 18px;
+    display: flex; flex-direction: column; min-height: 220px;
+  }
+  .prin-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 54px; height: 54px; border-radius: 50%;
+    background: var(--coral); color: #fff;
+    font-size: 28px; font-weight: 700; letter-spacing: -0.02em;
+    margin-bottom: 14px;
+    box-shadow: 0 3px 10px -4px rgba(233,69,96,0.45);
+  }
+  .prin-title {
+    font-size: 14px; font-weight: 700; color: var(--navy);
+    line-height: 1.25; margin-bottom: 8px;
+  }
+  .prin-body { font-size: 12px; color: var(--body); line-height: 1.5; }
+
+  /* 1.7 Success */
+  .success-cols {
+    margin-top: 24px; max-width: 1180px;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+  }
+  .success-col {
+    background: #fff; border: 0.5px solid var(--card-border);
+    border-radius: 12px; padding: 18px 22px 20px;
+  }
+  .success-col.advisor { border-top: 4px solid #16213E; }
+  .success-col.client  { border-top: 4px solid var(--coral); }
+  .success-col.project { border-top: 4px solid #2E7D4F; }
+  .success-head {
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--muted); font-weight: 700; margin-bottom: 4px;
+  }
+  .success-title {
+    font-size: 20px; color: var(--navy); font-weight: 700;
+    line-height: 1.15; margin-bottom: 14px;
+  }
+  .success-list { list-style: none; padding: 0; margin: 0; }
+  .success-list li {
+    font-size: 12px; line-height: 1.5; color: var(--body);
+    padding: 8px 0 9px 0;
+    border-top: 1px solid var(--card-border);
+  }
+  .success-list li:first-child { border-top: none; padding-top: 0; }
+  .success-list li strong { color: var(--navy); }
+
+  /* ── Matrix slide · compact fit-to-screen layout ─────────────── */
+  .matrix-slide {
+    display: flex; flex-direction: column;
+    overflow: hidden !important;
+    padding-top: 36px; padding-bottom: 72px;
+  }
+  .matrix-slide .phase-kicker { margin-bottom: 6px; }
+  .matrix-slide .phase-title {
+    font-size: 34px; line-height: 1.08; margin-bottom: 4px;
+  }
+  .matrix-slide .matrix-wrap {
+    margin-top: 14px; overflow: visible;
+    padding: 4px 2px 2px;
+  }
+  .matrix-slide .matrix { border-spacing: 2px; }
+  .matrix-slide .matrix-cell { width: 32px; height: 34px; border-radius: 5px; }
+  .matrix-slide .matrix-cell-num { font-size: 11px; }
+  .matrix-slide .matrix-rowhead {
+    min-width: 168px; padding: 6px 12px !important;
+  }
+  .matrix-slide .mr-title { font-size: 12px; }
+  .matrix-slide .mr-num { font-size: 9px; margin-bottom: 1px; }
+  .matrix-slide .matrix-colhead {
+    padding: 2px 0 6px; min-width: 30px; font-size: 9px;
+  }
+  .matrix-slide .matrix-total {
+    font-size: 13px; padding: 4px 0 !important; min-width: 36px;
+  }
+  .matrix-slide .matrix-total.hot { font-size: 17px; }
+  .matrix-slide .matrix-total-label { font-size: 8px; padding-left: 10px !important; }
+  .matrix-slide .matrix-legend {
+    margin-top: 14px; gap: 22px; flex-wrap: wrap;
+  }
+  .matrix-slide .leg-item { font-size: 11px; }
+  .matrix-slide .leg-swatch { width: 13px; height: 13px; }
+  .matrix-slide .matrix-takeaway {
+    margin-top: 10px; padding: 10px 16px;
+    font-size: 12px; line-height: 1.5; max-width: 100%;
+    border-radius: 8px;
+  }
+
+  /* Matrix cell rollover tooltip */
+  .matrix-cell.filled[data-title]:hover::after {
+    content: attr(data-title);
+    position: absolute;
+    bottom: calc(100% + 8px); left: 50%;
+    transform: translateX(-50%);
+    background: var(--ink); color: #fff;
+    padding: 6px 10px; border-radius: 6px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.01em;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 20;
+    box-shadow: 0 6px 18px -6px rgba(0,0,0,0.45);
+  }
+  .matrix-cell.filled[data-title]:hover::before {
+    content: '';
+    position: absolute;
+    bottom: calc(100% + 2px); left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: var(--ink);
+    pointer-events: none;
+    z-index: 20;
+  }
+
+  /* ── Section title slides ──────────────────────────────────────── */
+  .section-title-slide { justify-content: center; padding: 0 96px; }
+  .section-kicker {
+    font-size: 14px; letter-spacing: 0.24em; text-transform: uppercase;
+    color: var(--coral); font-weight: 700; margin-bottom: 14px;
+  }
+  .section-title-big {
+    font-size: 72px; font-weight: 700; color: var(--navy); line-height: 1.05;
+    letter-spacing: -0.02em; max-width: 920px; margin-bottom: 20px;
+  }
+  .section-lede { font-size: 18px; color: var(--muted); line-height: 1.4;
+                  max-width: 720px; font-style: italic; }
+
+  /* ── Transfer timeline (full slide) ────────────────────────────── */
+  .timeline-full {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    gap: 8px; margin: 24px 0 28px;
+  }
+  .t-col {
+    padding: 18px 12px 22px;
+    border-radius: 10px;
+    border: 0.5px solid var(--card-border);
+    background: #fff;
+    display: flex; flex-direction: column;
+    position: relative;
+    transition: transform 0.2s;
+  }
+  .t-col.peak {
+    background: var(--cli-tint);
+    border-color: var(--coral);
+    transform: translateY(-6px);
+    box-shadow: 0 8px 22px -12px rgba(233,69,96,0.35);
+  }
+  .t-day {
+    font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--muted); font-weight: 700; margin-bottom: 10px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--card-border);
+  }
+  .t-col.peak .t-day { color: var(--coral); border-bottom-color: rgba(233,69,96,0.3); }
+  .t-event {
+    font-size: 13px; color: var(--ink); font-weight: 700;
+    line-height: 1.25; margin-bottom: 10px;
+  }
+  .t-emot {
+    font-size: 11px; color: var(--body); line-height: 1.35; font-style: italic;
+    margin-top: auto;
+  }
+  .t-col.peak .t-emot {
+    color: var(--coral); font-weight: 700; font-style: normal;
+    letter-spacing: 0.04em; text-transform: uppercase; font-size: 10.5px;
+  }
+  .t-intensity {
+    position: absolute; bottom: 0; left: 12px; right: 12px;
+    height: 4px; border-radius: 0 0 2px 2px; background: var(--card-border);
+    overflow: hidden;
+  }
+  .t-intensity-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #EDF4EF 0%, #FBE9EC 100%);
+  }
+  .design-implication {
+    background: var(--coral); color: #fff;
+    padding: 20px 26px; border-radius: 10px;
+    max-width: 960px;
+  }
+  .design-implication-kicker {
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: rgba(255,255,255,0.85); font-weight: 700; margin-bottom: 8px;
+  }
+  .design-implication-body { font-size: 15px; line-height: 1.55; font-weight: 500; }
+
+  /* ── Overview grid (press O) ───────────────────────────────────── */
+  .overview {
+    position: fixed; inset: 0; background: rgba(26, 26, 46, 0.96);
+    z-index: 200; display: none;
+    padding: 56px 56px 48px;
+    overflow-y: auto;
+  }
+  .overview.open { display: flex; flex-direction: column; }
+  .overview h2 {
+    color: #fff; font-size: 14px; letter-spacing: 0.2em; text-transform: uppercase;
+    margin-bottom: 24px; font-weight: 700;
+  }
+  .overview-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 14px; flex: 1; align-content: start;
+  }
+  .ov-card {
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+    padding: 20px 18px; border-radius: 10px; cursor: pointer;
+    transition: background 0.18s, border-color 0.18s, transform 0.18s;
+  }
+  .ov-card:hover { background: rgba(233,69,96,0.18); border-color: var(--coral);
+                    transform: translateY(-3px); }
+  .ov-num { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+            color: var(--coral); font-weight: 700; margin-bottom: 6px; }
+  .ov-title { color: #fff; font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+  .ov-body { color: #B8B8C3; font-size: 12.5px; line-height: 1.4; }
+  .overview-close {
+    position: absolute; top: 24px; right: 32px;
+    background: transparent; border: 1px solid rgba(255,255,255,0.2);
+    color: #fff; padding: 8px 14px; border-radius: 14px;
+    font-family: inherit; font-size: 10px; letter-spacing: 0.1em;
+    text-transform: uppercase; cursor: pointer;
+  }
+  .overview-close:hover { background: rgba(255,255,255,0.08); }
+
+  /* ── Scrollbar styling ─────────────────────────────────────────── */
+  .slide::-webkit-scrollbar { width: 6px; }
+  .slide::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 3px; }
+  .slide::-webkit-scrollbar-track { background: transparent; }
+
+  @media (max-width: 960px) {
+    .slide { padding: 32px 36px; }
+    .phase-num { font-size: 88px; }
+    .phase-title { font-size: 36px; }
+    .tracks { grid-template-columns: 1fr; }
+    .read-grid { grid-template-columns: 1fr; }
+    .read-structure { grid-template-columns: 1fr; }
+    .zones-grid { grid-template-columns: 1fr; }
+    .cover-title { font-size: 64px; }
+    .section-title-big { font-size: 48px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="chrome">
+  <div class="chrome-left">
+    <span class="chrome-mark">RIA POC · JOURNEY MAP</span>
+    <div class="chrome-rail" id="rail"></div>
+  </div>
+  <div class="chrome-right">
+    <span class="slide-counter"><span id="cur">1</span> / <span id="tot">11</span></span>
+    <button class="chrome-btn" onclick="openOverview()">Overview</button>
+  </div>
+</div>
+
+<div class="deck" id="deck">
+
+  <!-- ── Slide 0 · Cover ─────────────────────────────────────────── -->
+  <section class="slide cover active">
+    <div class="cover-project">RIA POC · Version 0.2</div>
+    <h1 class="cover-title" style="font-size:72px; line-height:1.02;">Project Overview<br>and Journey Map</h1>
+    <p class="cover-sub">Reimagining the Registered Investment Advisor experience.<br>Advisor and client, side by side, across the full lifecycle of the relationship.</p>
+    <div class="cover-meta">
+      <span>L. Mitchell</span> &nbsp;·&nbsp; April 2026 &nbsp;·&nbsp; For internal review
+    </div>
+  </section>
+
+  <!-- ── Slide 1 · 1.1 Mission / time allocation shift ───────────── -->
+  <section class="slide">
+    <div class="phase-kicker">1.1 · The mission</div>
+    <h1 class="phase-title" style="font-size:40px;">Lose the operational drag.<br>Return time to the work only a human can do.</h1>
+    <p class="phase-summary">
+      The advisor wears three hats and runs between a dozen disconnected tools. The platform collapses the operational load so two kinds of time come back — <strong style="color:#2E7D4F;">open time</strong> for growth and learning, <strong style="color:#16213E;">enhanced time</strong> for deeper client work — while a small slice stays reserved for advisor <em>oversight and approvals</em>, because the RIA is always in control.
+    </p>
+
+    <div class="mission-compare">
+      <div class="tm-col today">
+        <div class="tm-label">Today</div>
+        <div class="tm-heading">A day of drag</div>
+        <div class="tm-bar">
+          <div class="tm-seg admin"    style="flex:35;">35%</div>
+          <div class="tm-seg tools"    style="flex:20;">20%</div>
+          <div class="tm-seg reactive" style="flex:15;">15%</div>
+          <div class="tm-seg client"   style="flex:22;">22%</div>
+          <div class="tm-seg growth"   style="flex:8;">8%</div>
+        </div>
+        <div class="tm-legend">
+          <div class="tm-legend-row"><span class="dot" style="background:#B84A5F;"></span>Admin — prep, follow-up, CRM upkeep</div>
+          <div class="tm-legend-row"><span class="dot" style="background:#D97284;"></span>Tool-switching between disconnected apps</div>
+          <div class="tm-legend-row"><span class="dot" style="background:#E89BA9;"></span>Reactive client asks</div>
+          <div class="tm-legend-row"><span class="dot" style="background:#4A5A8A;"></span>Client-facing work</div>
+          <div class="tm-legend-row"><span class="dot" style="background:#BEC5D6;"></span>BD, learning, growth</div>
+        </div>
+      </div>
+      <div class="tm-arrow">→</div>
+      <div class="tm-col platform">
+        <div class="tm-label">On platform</div>
+        <div class="tm-heading">A day with leverage</div>
+        <div class="tm-bar">
+          <div class="tm-seg baseline" style="flex:10;">10%</div>
+          <div class="tm-seg enhanced" style="flex:45;">45%</div>
+          <div class="tm-seg open"     style="flex:45;">45%</div>
+        </div>
+        <div class="tm-legend">
+          <div class="tm-legend-row"><span class="dot" style="background:#C5D5BA;"></span>Oversight &amp; approvals — advisor-in-loop confirmation</div>
+          <div class="tm-legend-row"><span class="dot" style="background:#16213E;"></span>Enhanced client time — deeper, more prepared moments</div>
+          <div class="tm-legend-row"><span class="dot" style="background:#2E7D4F;"></span>Open time — business development, learning, growth</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Slide 3 · 1.2 Goals ─────────────────────────────────────── -->
+  <section class="slide">
+    <div class="phase-kicker">1.2 · Goals</div>
+    <h1 class="phase-title" style="font-size:40px;">Five primary goals.<br>Three multipliers.</h1>
+    <p class="phase-summary">
+      The project delivers on five outcomes rooted in optimization, quality time, and quality service. Three secondary goals turn a useful tool into a differentiated one.
+    </p>
+
+    <div class="goals-wrap">
+      <div class="goals-kicker">Primary — what the project must prove</div>
+      <div class="goals-row">
+        <div class="goal-card"><div class="goal-num">Goal 01</div><div class="goal-title">Seamless, one-stop experience</div><div class="goal-sub">One workflow, one interface, one place where the work lives.</div></div>
+        <div class="goal-card"><div class="goal-num">Goal 02</div><div class="goal-title">Give time back to the advisor</div><div class="goal-sub">Lighten prep, follow-up, note-taking, scheduling, drafting.</div></div>
+        <div class="goal-card"><div class="goal-num">Goal 03</div><div class="goal-title">Engage clients before they ask</div><div class="goal-sub">Show up prepared, personal, proactive. Anticipate, don't react.</div></div>
+        <div class="goal-card"><div class="goal-num">Goal 04</div><div class="goal-title">Make growth systematic</div><div class="goal-sub">Turn BD, referrals, and practice health into repeatable motion.</div></div>
+        <div class="goal-card"><div class="goal-num">Goal 05</div><div class="goal-title">Transparency in onboarding</div><div class="goal-sub">Make the multi-week transfer visible to client, advisor, and custodian.</div></div>
+      </div>
+
+      <div class="goals-kicker" style="margin-top:14px;">Secondary — useful → differentiated</div>
+      <div class="goals-row secondary">
+        <div class="goal-card secondary"><div class="goal-num">Multiplier 06</div><div class="goal-title">Make the advisor a better advisor</div><div class="goal-sub">Embed learning and skill-building into the daily workflow.</div></div>
+        <div class="goal-card secondary"><div class="goal-num">Multiplier 07</div><div class="goal-title">Generate insight, not just data</div><div class="goal-sub">X-ray and MRI views — actionable, anticipatory, clear.</div></div>
+        <div class="goal-card secondary"><div class="goal-num">Multiplier 08</div><div class="goal-title">Adapt to the user</div><div class="goal-sub">Interface shifts with behavior, priorities, time — not static.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Slide 4 · 1.3 The RIA — three roles ─────────────────────── -->
+  <section class="slide">
+    <div class="phase-kicker">1.3 · The user — the RIA</div>
+    <h1 class="phase-title" style="font-size:44px;">Three roles.<br>One person.</h1>
+    <p class="phase-summary">
+      Every RIA is simultaneously planning, stewarding a relationship, and running a business. The platform must serve all three without forcing a context switch.
+    </p>
+
+    <div class="venn-wrap">
+      <div class="venn-stage">
+        <svg class="venn-circles" viewBox="0 0 900 620" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle cx="300" cy="255" r="210" fill="#3A5F8F" fill-opacity="0.22" stroke="#3A5F8F" stroke-width="2"/>
+          <circle cx="600" cy="255" r="210" fill="#E94560" fill-opacity="0.22" stroke="#E94560" stroke-width="2"/>
+          <circle cx="450" cy="440" r="210" fill="#6B4F7A" fill-opacity="0.22" stroke="#6B4F7A" stroke-width="2"/>
+        </svg>
+
+        <div class="venn-label planner" style="left:4%; top:8%;">
+          <div class="venn-role-num">Role 01</div>
+          <div class="venn-role-title">Financial planner</div>
+          <div class="venn-role-want">depth + accuracy</div>
+        </div>
+        <div class="venn-label manager" style="right:4%; top:8%;">
+          <div class="venn-role-num">Role 02</div>
+          <div class="venn-role-title">Relationship manager</div>
+          <div class="venn-role-want">context + warmth</div>
+        </div>
+        <div class="venn-label owner" style="left:50%; bottom:0; transform:translateX(-50%);">
+          <div class="venn-role-num">Role 03</div>
+          <div class="venn-role-title">Small business owner</div>
+          <div class="venn-role-want">leverage + visibility</div>
+        </div>
+
+        <div class="venn-center">
+          <div class="venn-center-head">All three share</div>
+          <div class="venn-center-line">Time scarcity</div>
+          <div class="venn-center-line">Data fragmentation</div>
+          <div class="venn-center-line">Pressure to scale</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="roles-shared">
+      <div class="shared-label">Behind every role — the data problem</div>
+      <div class="shared-body">The messiness of today's tech stack comes down to this: the data the advisor needs is scattered across custodians, planning tools, CRMs, and spreadsheets. Just getting to it, and trusting it, is most of the work — no matter which hat the advisor has on at that moment.</div>
+    </div>
+  </section>
+
+  <!-- ── Slide 5 · 1.4 Pain points ───────────────────────────────── -->
+  <section class="slide">
+    <div class="phase-kicker">1.4 · Pain points</div>
+    <h1 class="phase-title" style="font-size:40px;">Five places where the day<br>works against the advisor.</h1>
+    <p class="phase-summary">
+      Each category represents a place where today's tools and workflows actively cost hours, weaken relationships, or put the practice itself at risk.
+    </p>
+
+    <div class="pain-grid">
+      <div class="pain-tile">
+        <div class="pain-num">01</div>
+        <div class="pain-title">Administrative drag</div>
+        <div class="pain-stat"><strong>3+ hours</strong> of prep per client per quarter. Notes and CRM upkeep happen after-hours, days late.</div>
+      </div>
+      <div class="pain-tile">
+        <div class="pain-num">02</div>
+        <div class="pain-title">Tool fragmentation</div>
+        <div class="pain-stat">Same client data entered across <strong>3–5 tools</strong>. 30–60 min lost per workflow to switching.</div>
+      </div>
+      <div class="pain-tile">
+        <div class="pain-num">03</div>
+        <div class="pain-title">Onboarding friction</div>
+        <div class="pain-stat"><strong>10–30 days</strong> to transfer. Days 10–20 are peak client anxiety and peak advisor silence.</div>
+      </div>
+      <div class="pain-tile">
+        <div class="pain-num">04</div>
+        <div class="pain-title">Lots of data, little insight</div>
+        <div class="pain-stat">Portfolio, market, client data in <strong>silos</strong>. Hours pulling reports, no time interpreting them.</div>
+      </div>
+      <div class="pain-tile">
+        <div class="pain-num">05</div>
+        <div class="pain-title">BD &amp; retention starve</div>
+        <div class="pain-stat">BD loses to delivery <strong>every week</strong>. Quiet clients are detected too late.</div>
+      </div>
+    </div>
+
+    <div class="pain-summary">
+      Taken together, these five pressures add up to a practice running in <strong>reactive mode</strong>. Every moment in the opportunity map is a response to one of them.
+    </div>
+  </section>
+
+  <!-- ── Slide 6 · 1.5 How Might We ──────────────────────────────── -->
+  <section class="slide">
+    <div class="phase-kicker">1.5 · How might we</div>
+    <h1 class="phase-title" style="font-size:44px;">Four statements anchor the work.</h1>
+    <p class="phase-summary">
+      Each HMW is intentionally wide — meant to spawn multiple feature concepts, not constrain them.
+    </p>
+
+    <div class="hmw-stack">
+      <div class="hmw-row">
+        <div class="hmw-num">01</div>
+        <div class="hmw-body">How might we <strong>lose the operational drag</strong> so both open time (BD, learning, growth) and enhanced time (deeper client work) return to the RIA?</div>
+      </div>
+      <div class="hmw-row">
+        <div class="hmw-num">02</div>
+        <div class="hmw-body">How might we <strong>unify the fragmented tool stack</strong> into one seamless, dynamic workflow that feels like the right fit — neither overwhelming nor limiting?</div>
+      </div>
+      <div class="hmw-row">
+        <div class="hmw-num">03</div>
+        <div class="hmw-body">How might we give the RIA <strong>X-ray clarity</strong> on clients and portfolios — with actionable insight and anticipation — while keeping judgment and advice firmly in the advisor's hands?</div>
+      </div>
+      <div class="hmw-row">
+        <div class="hmw-num">04</div>
+        <div class="hmw-body">How might we make the advisor's <strong>own practice</strong> — book, business, skill, growth — as systematic as the client work it supports?</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Slide 7 · 1.6 Design principles ─────────────────────────── -->
+  <section class="slide">
+    <div class="phase-kicker">1.6 · Design principles</div>
+    <h1 class="phase-title" style="font-size:42px;">Tiebreakers when tradeoffs show up.</h1>
+    <p class="phase-summary">
+      Principles that guide every design and product decision. When we have to choose, these are the rules.
+    </p>
+
+    <div class="prin-grid">
+      <div class="prin-tile">
+        <div class="prin-num">1</div>
+        <div class="prin-title">The RIA is in control</div>
+        <div class="prin-body">The advisor is always the conductor. The platform suggests, drafts, prepares — the advisor decides.</div>
+      </div>
+      <div class="prin-tile">
+        <div class="prin-num">2</div>
+        <div class="prin-title">Transparency over magic</div>
+        <div class="prin-body">Show sources. Show rationale. Show the work. Black boxes erode trust in a fiduciary context.</div>
+      </div>
+      <div class="prin-tile">
+        <div class="prin-num">3</div>
+        <div class="prin-title">Seamless, not intrusive</div>
+        <div class="prin-body">Fades into the background when not needed. Surfaces with precision when it is. No jarring hand-offs.</div>
+      </div>
+      <div class="prin-tile">
+        <div class="prin-num">4</div>
+        <div class="prin-title">Quality over quantity</div>
+        <div class="prin-body">Fewer, better-reasoned signals beat a flood of notifications. Earn attention by deserving it.</div>
+      </div>
+      <div class="prin-tile">
+        <div class="prin-num">5</div>
+        <div class="prin-title">The human relationship is the product</div>
+        <div class="prin-body">Automation deepens human moments, never substitutes. The relationship is what the practice sells.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Slide 8 · 1.7 Success ───────────────────────────────────── -->
+  <section class="slide">
+    <div class="phase-kicker">1.7 · Success</div>
+    <h1 class="phase-title" style="font-size:48px;">Success is…</h1>
+    <p class="phase-summary">
+      The POC is a prototype, not a shipped product. Success is measured in clarity of vision and proof of value — told through three audiences.
+    </p>
+
+    <div class="success-cols">
+      <div class="success-col advisor">
+        <div class="success-head">For the advisor</div>
+        <div class="success-title">Time reclaimed,<br>trust earned.</div>
+        <ul class="success-list">
+          <li><strong>Hours back</strong> on meeting prep, follow-up, and notes.</li>
+          <li><strong>Confidence to act</strong> — rationale, sources, guardrails all visible.</li>
+          <li><strong>Better meetings</strong> — walks in more prepared, more personal.</li>
+          <li><strong>Visible practice health</strong> — pipeline, capacity, revenue without asking ops.</li>
+          <li><strong>Continuous learning</strong> embedded in daily work.</li>
+        </ul>
+      </div>
+      <div class="success-col client">
+        <div class="success-head">For the client</div>
+        <div class="success-title">Personal, clear,<br>never silent.</div>
+        <ul class="success-list">
+          <li><strong>Smoother onboarding</strong> — transfers feel guided, not silent.</li>
+          <li><strong>Personalized engagement</strong> — comms reference the client's actual life.</li>
+          <li><strong>Understandable plan</strong> — rationale in formats they can absorb.</li>
+        </ul>
+      </div>
+      <div class="success-col project">
+        <div class="success-head">For the project</div>
+        <div class="success-title">A prototype that<br>proves the pattern.</div>
+        <ul class="success-list">
+          <li><strong>Real, demoable</strong> — built on the engineering scaffold, redesigned for humans.</li>
+          <li><strong>Repeatable design language</strong> that extends into Phase II.</li>
+          <li><strong>Coherent UX intent</strong> — clear about what the tool is and how it's used.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Slide 8 · 2.0 How to read the journey map ───────────────── -->
+  <section class="slide">
+    <div class="phase-kicker">2.0 · How to read the journey map</div>
+    <h1 class="phase-title" style="font-size:44px;">Two tracks, one relationship,<br>three diagnostic layers.</h1>
+    <p class="phase-summary">
+      Every phase runs the advisor and client in parallel. The gap between them is the intersection zone —
+      where trust is made, tested, or lost. Every tension point falls into one of three diagnostic layers
+      that tell you what kind of intervention to design.
+    </p>
+
+    <div class="read-structure">
+      <div class="adv-half">
+        <strong>Advisor track</strong>
+        What the advisor does, how long it takes, and where the work gets heavy.
+      </div>
+      <div class="cli-half">
+        <strong>Client track</strong>
+        What the client experiences, feels, and expects in the same moment.
+      </div>
+    </div>
+
+    <div class="read-grid">
+      <div class="read-card auto">
+        <h4>Automation opportunity</h4>
+        <p>Reduce manual overhead. Tasks that can be offloaded, templated, or executed automatically — freeing time and attention.</p>
+      </div>
+      <div class="read-card agent">
+        <h4>Agentic AI</h4>
+        <p>Proactive sensing and action. The platform notices, synthesizes, or recommends without being asked — advisor decides whether to act.</p>
+      </div>
+      <div class="read-card trust">
+        <h4>Human / trust layer</h4>
+        <p>Where the experience feels hard for a human, not a machine. Automation protects this layer; it does not replace it.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Slide 9 · Phase 01 Prospecting ──────────────────────────── -->
+  <section class="slide">
+    <div class="phase-hero">
+      <div class="phase-num">01</div>
+      <div class="phase-title-block">
+        <div class="phase-kicker">Phase 01 · First touchpoints → signed agreement</div>
+        <h1 class="phase-title">Prospecting</h1>
+      </div>
+    </div>
+    <p class="phase-summary">
+      The advisor is selling — building credibility and proving fit.
+      The client is evaluating — trying to decide whether to trust.
+      Nothing is said aloud about either. The work happens on reputation, referrals, and the pitch meeting.
+    </p>
+
+    <div class="tracks">
+      <div class="track advisor">
+        <div class="track-label"><span class="track-dot"></span>Advisor</div>
+        <div class="track-item">
+          <div class="track-item-title"><span class="track-num">01</span>Qualify & pitch</div>
+          <div class="track-item-body">Research the prospect, prepare the deck, schedule the intro call. 2–4 hours per prospect. Mostly unbillable.</div>
+        </div>
+        <div class="track-item">
+          <div class="track-item-title"><span class="track-num">02</span>Build credibility</div>
+          <div class="track-item-body">Follow up with supporting materials, tailored notes, and answer questions. Relationship-building without a signed agreement.</div>
+        </div>
+        <div class="track-item">
+          <div class="track-item-title"><span class="track-num">03</span>Close</div>
+          <div class="track-item-body">Walk through fees, advisory agreement, custodian choice. Nudge the yes. Start planning the handoff to onboarding.</div>
+        </div>
+      </div>
+      <div class="track client">
+        <div class="track-label"><span class="track-dot"></span>Client</div>
+        <div class="track-item">
+          <div class="track-item-title"><span class="track-num">01</span>Anxiety & evaluation</div>
+          <div class="track-item-body">Who do I trust with my money? Googles the advisor, checks credentials, asks friends. Forms a first impression long before the meeting.</div>
+        </div>
+        <div class="track-item">
+          <div class="track-item-title"><span class="track-num">02</span>The fit test</div>
+          <div class="track-item-body">Does this person understand me? Am I being sold to? Watches for warmth, competence, and whether the pitch is about them or about the product.</div>
+        </div>
+        <div class="track-item">
+          <div class="track-item-title"><span class="track-num">03</span>Quiet decision</div>
+          <div class="track-item-body">Rarely says yes in the room. Goes home, talks to a spouse, re-reads the email. Decides on feel plus fact.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="zone">
+      <div class="zone-label">Intersection zone</div>
+      <div class="zone-title">Trust is forming</div>
+      <div class="zone-body">
+        Advisor is selling. Client is evaluating. Neither says what they actually want.
+        The advisor wants the close; the client wants to feel safe. The gap between the two is where pitches fail —
+        and where a small, well-placed signal of preparation can make all the difference.
+      </div>
+    </div>
+
+    <div class="moments-head">
+      <strong>AI + augmented opportunities in this phase</strong>
+      <span class="moments-hint">click a card to expand</span>
+    </div>
+    <div class="moments">
+      <div class="moment ai" onclick="toggleMoment(this)">
+        <div class="moment-caret">▼</div>
+        <div class="moment-head">
+          <div class="moment-num">01</div>
+          <div>
+            <div class="moment-title">Prospect intelligence brief</div>
+            <div class="moment-kind">sense + synthesize</div>
+          </div>
+        </div>
+        <div class="moment-body">
+          <span class="moment-tag">Journey moment</span>
+          Agent auto-pulls LinkedIn, public financial news, firm filings, and shared-network signals
+          the day before an intro meeting. Delivers a single-page brief the advisor can scan on the way to the call.
+        </div>
+      </div>
+      <div class="moment ops" onclick="toggleMoment(this)">
+        <div class="moment-caret">▼</div>
+        <div class="moment-head">
+          <div class="moment-num">12</div>
+          <div>
+            <div class="moment-title">Pipeline re-engagement radar</div>
+            <div class="moment-kind">sense + recommend</div>
+          </div>
+        </div>
+        <div class="moment-body">
+          <span class="moment-tag">Business-ops</span>
+          Watches dormant prospects (45+ days of silence) and recommends the right nudge,
+          the right moment, and the right hook. Lives behind the advisor, not in the client meeting.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Slide 3 · Phase 02 Onboarding ───────────────────────────── -->
+  <section class="slide">
+    <div class="phase-hero">
+      <div class="phase-num">02</div>
+      <div class="phase-title-block">
+        <div class="phase-kicker">Phase 02 · Signed agreement → first month under management</div>
+        <h1 class="phase-title">Onboarding</h1>
+      </div>
+    </div>
+    <p class="phase-summary">
+      Between the handshake and the first statement. Document collection, account opening, and the transfer window.
+      Advisor activity is mostly paperwork and status checks; client emotion swings from relief to peak anxiety and back.
+      This is the phase where the first impression of the relationship is permanently set.
+    </p>
+
+    <div class="tracks">
+      <div class="track advisor">
+        <div class="track-label"><span class="track-dot"></span>Advisor</div>
+        <div class="track-item">
+          <div class="track-item-title"><span class="track-num">01</span>Collect documents</div>
+          <div class="track-item-body">Statements, tax returns, IDs, beneficiary forms, existing account details. Chase missing items. Explain why each is needed.</div>
+        </div>
+        <div class="track-item">
+          <div class="track-item-title"><span class="track-num">02</span>Open and fund</div>
+          <div class="track-item-body">Set up custodian accounts. Initiate transfers (ACATS and non-ACATS). Send DocuSign requests. Reconcile what actually arrives.</div>
+        </div>
+        <div class="track-item">
+          <div class="track-item-title"><span class="track-num">03</span>Stay visible</div>
+          <div class="track-item-body">Send periodic status updates — even when nothing has changed. Acknowledge the silence of the transfer window so the client doesn't read it as inactivity.</div>
+        </div>
+      </div>
+      <div class="track client">
+        <div class="track-label"><span class="track-dot"></span>Client</div>
+        <div class="track-item">
+          <div class="track-item-title"><span class="track-num">01</span>Relief & hope</div>
+          <div class="track-item-body">Decision made. Starts gathering documents. Expects things to move quickly now that the yes is in.</div>
+        </div>
+        <div class="track-item">
+          <div class="track-item-title"><span class="track-num">02</span>Peak anxiety during transfer</div>
+          <div class="track-item-body">Balances look wrong. Old account appears empty. New account isn't funded yet. No phone call has come. Wonders if this was a mistake.</div>
+        </div>
+        <div class="track-item">
+          <div class="track-item-title"><span class="track-num">03</span>Settling in</div>
+          <div class="track-item-body">Accounts arrive. Logs in to the portal. First impression of the platform, statement format, communication cadence. Whatever happens here becomes the baseline.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="zone">
+      <div class="zone-label">Intersection zone</div>
+      <div class="zone-title">The silent transfer window</div>
+      <div class="zone-body">
+        Days 10 to 20 are simultaneously peak client anxiety and peak advisor inactivity.
+        There is nothing the advisor can legally do to move a transfer faster. The client interprets silence as neglect.
+        Every subsequent review and referral opportunity gets discounted by how this window felt.
+      </div>
+    </div>
+
+    <div class="moments-head">
+      <strong>AI + augmented opportunities in this phase</strong>
+      <span class="moments-hint">click a card to expand</span>
+    </div>
+    <div class="moments">
+      <div class="moment ai" onclick="toggleMoment(this)">
+        <div class="moment-caret">▼</div>
+        <div class="moment-head">
+          <div class="moment-num">02</div>
+          <div>
+            <div class="moment-title">Onboarding status monitor</div>
+            <div class="moment-kind">sense + synthesize</div>
+          </div>
+        </div>
+        <div class="moment-body">
+          <span class="moment-tag">Journey moment</span>
+          Detects stalled onboarding (48+ hours without progress), recommends the right nudge,
+          and drafts a plain-language status update for the client. Turns silent days into acknowledged ones.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Slide 4 · Inside the transfer window ────────────────────── -->
+  <section class="slide">
+    <div class="phase-kicker">Phase 02 zoom-in · The 30-day client timeline</div>
+    <h1 class="phase-title" style="font-size:44px;">Inside the transfer window:<br>what the client feels, day by day.</h1>
+    <p class="phase-summary">
+      Most client anxiety in the whole relationship concentrates here, in days when the advisor typically
+      has least to say. Days 10–20 are peak client anxiety and peak advisor inactivity at the same time.
+    </p>
+
+    <div class="timeline-full">
+      <div class="t-col">
+        <div class="t-day">Day 0</div>
+        <div class="t-event">Signed agreement</div>
+        <div class="t-emot">Hopeful, relieved</div>
+      </div>
+      <div class="t-col">
+        <div class="t-day">Day 1–7</div>
+        <div class="t-event">Document collection</div>
+        <div class="t-emot">Stressed, embarrassed about disorganization</div>
+      </div>
+      <div class="t-col">
+        <div class="t-day">Day 7–10</div>
+        <div class="t-event">Forms &amp; signing</div>
+        <div class="t-emot">Overwhelmed, compliant</div>
+      </div>
+      <div class="t-col peak">
+        <div class="t-day">Day 10–20</div>
+        <div class="t-event">Transfer in transit</div>
+        <div class="t-emot">Peak anxiety — balances look wrong</div>
+      </div>
+      <div class="t-col">
+        <div class="t-day">Day 15–25</div>
+        <div class="t-event">Partial arrival</div>
+        <div class="t-emot">Confused about what's missing</div>
+      </div>
+      <div class="t-col">
+        <div class="t-day">Day 20–30</div>
+        <div class="t-event">Transfer complete</div>
+        <div class="t-emot">Relieved, anticlimactic</div>
+      </div>
+      <div class="t-col">
+        <div class="t-day">Day 30+</div>
+        <div class="t-event">Live under management</div>
+        <div class="t-emot">Settling — first impression already set</div>
+      </div>
+    </div>
+
+    <div class="design-implication">
+      <div class="design-implication-kicker">Design implication</div>
+      <div class="design-implication-body">
+        Proactive, precise, low-effort communication during the Day&nbsp;10–20 window is one of the
+        highest-leverage design opportunities in the whole journey. Every subsequent review and referral
+        opportunity gets discounted by how this window felt.
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Slide 5 · Phase 03 Discovery & plan ─────────────────────── -->
+  <section class="slide">
+    <div class="phase-hero">
+      <div class="phase-num">03</div>
+      <div class="phase-title-block">
+        <div class="phase-kicker">Phase 03 · Building the complete financial picture</div>
+        <h1 class="phase-title">Discovery &amp; plan</h1>
+      </div>
+    </div>
+    <p class="phase-summary">
+      The most under-designed phase in the entire relationship. Three simultaneous layers of work —
+      data collection, narrative-building, and trust formation — compressed into a handful of conversations.
+      Discovery stretches across 5–6 meetings in the first few months. Everything after depends on what gets captured here.
+    </p>
+
+    <div class="tracks">
+      <div class="track advisor">
+        <div class="track-label"><span class="track-dot"></span>Advisor</div>
+        <div class="track-item">
+          <div class="track-item-title"><span class="track-num">01</span>Discovery meetings</div>
+          <div class="track-item-body">5–6 meetings, 90–120 min each, of open-ended conversation. Goals, fears, family dynamics, prior advisor history. The dual-brain problem — conversation, data, notes, body language at once.</div>
+        </div>
+        <div class="track-item">
+          <div class="track-item-title"><span class="track-num">02</span>Build the full picture</div>
+          <div class="track-item-body">Collect structured data (assets, liabilities, income, tax, estate, insurance) alongside semi-structured narrative (goals, timeline, values). Two incompatible capture modes, one client in the room.</div>
+        </div>
+        <div class="track-item">
+          <div class="track-item-title"><span class="track-num">03</span>Model and present</div>
+          <div class="track-item-body">Run cash flow, retirement projection, tax scenarios. Turn the picture into a proposal the client can understand and sign off on.</div>
+        </div>
+      </div>
+      <div class="track client">
+        <div class="track-label"><span class="track-dot"></span>Client</div>
+        <div class="track-item">
+          <div class="track-item-title"><span class="track-num">01</span>Hope & vulnerability</div>
+          <div class="track-item-body">Shares retirement fears, family obligations, past regrets. Wants to feel heard before feeling analyzed.</div>
+        </div>
+        <div class="track-item">
+          <div class="track-item-title"><span class="track-num">02</span>Document fatigue</div>
+          <div class="track-item-body">Has been asked for the same statement three times by three systems. Feels judged by the state of their paperwork.</div>
+        </div>
+        <div class="track-item">
+          <div class="track-item-title"><span class="track-num">03</span>Plan reveal</div>
+          <div class="track-item-body">Sees the plan for the first time. Either feels relieved (someone has a map) or overwhelmed (too many numbers, not enough story).</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="zone">
+      <div class="zone-label">Intersection zone</div>
+      <div class="zone-title">Vulnerability peak</div>
+      <div class="zone-body">
+        Client shares real fears about money, family, and aging. Advisor must hold the emotional space and
+        simultaneously capture structured data. This is where the trust layer is built —
+        and where over-engineered capture tools actively get in the way.
+      </div>
+    </div>
+
+    <div class="moments-head">
+      <strong>AI + augmented opportunities in this phase</strong>
+      <span class="moments-hint">click a card to expand</span>
+    </div>
+    <div class="moments">
+      <div class="moment ai" onclick="toggleMoment(this)">
+        <div class="moment-caret">▼</div>
+        <div class="moment-head">
+          <div class="moment-num">03</div>
+          <div>
+            <div class="moment-title">Discovery call synthesis</div>
+            <div class="moment-kind">sense + synthesize</div>
+          </div>
+        </div>
+        <div class="moment-body">
+          <span class="moment-tag">Journey moment</span>
+          From meeting transcript, extracts goals, risk signals, open items, and commitments.
+          Advisor reviews and confirms; agent files into the plan and CRM. Removes the note-taking cost of being fully present.
+        </div>
+      </div>
+      <div class="moment ai" onclick="toggleMoment(this)">
+        <div class="moment-caret">▼</div>
+        <div class="moment-head">
+          <div class="moment-num">04</div>
+          <div>
+            <div class="moment-title">Risk profile anomaly flag</div>
+            <div class="moment-kind">sense + recommend</div>
+          </div>
+        </div>
+        <div class="moment-body">
+          <span class="moment-tag">Journey moment</span>
+          Cross-references stated risk tolerance against actual portfolio choices, spending patterns,
+          and reactions to past market events. Flags gaps before they become surprises.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Slide 5 · Phase 04 Ongoing ──────────────────────────────── -->
+  <section class="slide">
+    <div class="phase-hero">
+      <div class="phase-num">04</div>
+      <div class="phase-title-block">
+        <div class="phase-kicker">Phase 04 · Quarterlies, drift, and the drift of memory</div>
+        <h1 class="phase-title">Ongoing relationship</h1>
+      </div>
+    </div>
+    <p class="phase-summary">
+      The steady state — where the practice lives 90% of the time and where most advisor time quietly disappears.
+      Quarterly prep, drift monitoring, and ad-hoc responses eat the hours promised to planning and growth.
+      Clients increasingly expect on-demand service and a running sense of portfolio health between reviews.
+    </p>
+
+    <div class="tracks">
+      <div class="track advisor">
+        <div class="track-label"><span class="track-dot"></span>Advisor</div>
+        <div class="track-item">
+          <div class="track-item-title"><span class="track-num">01</span>Quarterly prep & review</div>
+          <div class="track-item-body">Pull reports, draft agenda, review drift, prep talking points. A significant chunk of each week depending on book size.</div>
+        </div>
+        <div class="track-item">
+          <div class="track-item-title"><span class="track-num">02</span>Ad-hoc responses</div>
+          <div class="track-item-body">Inbound calls and emails — market news, one-off life questions, tax letters. Arrive unscheduled, block deep work.</div>
+        </div>
+        <div class="track-item">
+          <div class="track-item-title"><span class="track-num">03</span>Monitor and adjust</div>
+          <div class="track-item-body">Watch for drift, flag outliers, rebalance when needed. Largely invisible work the client assumes is always happening.</div>
+        </div>
+      </div>
+      <div class="track client">
+        <div class="track-label"><span class="track-dot"></span>Client</div>
+        <div class="track-item">
+          <div class="track-item-title"><span class="track-num">01</span>Passive trust</div>
+          <div class="track-item-body">Trusts the advisor but doesn't fully understand the plan. Reads emails when convenient. Assumes silence means everything is fine.</div>
+        </div>
+        <div class="track-item">
+          <div class="track-item-title"><span class="track-num">02</span>On-demand expectation</div>
+          <div class="track-item-body">Wants answers when questions arise — not just at the next scheduled review. Expects a light, current view of portfolio health between meetings.</div>
+        </div>
+        <div class="track-item">
+          <div class="track-item-title"><span class="track-num">03</span>Low-grade market anxiety</div>
+          <div class="track-item-body">Reacts to headlines. Wonders whether anyone is watching. Wants a quick "yes, we see this, here's the context" without needing a phone call.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="zone">
+      <div class="zone-label">Intersection zone</div>
+      <div class="zone-title">Silent drift</div>
+      <div class="zone-body">
+        Client forgets details. Advisor forgets context. Without active memory, the relationship coasts on goodwill
+        until a quarterly review forces re-anchoring. The best designs here reduce the cost of remembering,
+        not the frequency of review.
+      </div>
+    </div>
+
+    <div class="moments-head">
+      <strong>AI + augmented opportunities in this phase</strong>
+      <span class="moments-hint">5 moments — click any card to expand</span>
+    </div>
+    <div class="moments">
+      <div class="moment ai" onclick="toggleMoment(this)">
+        <div class="moment-caret">▼</div>
+        <div class="moment-head">
+          <div class="moment-num">05</div>
+          <div>
+            <div class="moment-title">Meeting prep package</div>
+            <div class="moment-kind">sense + synthesize</div>
+          </div>
+        </div>
+        <div class="moment-body">
+          <span class="moment-tag">Journey moment</span>
+          48 hours before a client meeting, agent assembles portfolio review, drift summary,
+          life-event scan, open commitments, and talking points. Advisor edits; agent does the legwork.
+        </div>
+      </div>
+      <div class="moment ai" onclick="toggleMoment(this)">
+        <div class="moment-caret">▼</div>
+        <div class="moment-head">
+          <div class="moment-num">06</div>
+          <div>
+            <div class="moment-title">Quiet client early warning</div>
+            <div class="moment-kind">sense + recommend</div>
+          </div>
+        </div>
+        <div class="moment-body">
+          <span class="moment-tag">Journey moment</span>
+          Watches for clients who haven't logged in, haven't replied, or haven't been contacted —
+          before quiet becomes churn risk.
+        </div>
+      </div>
+      <div class="moment ai" onclick="toggleMoment(this)">
+        <div class="moment-caret">▼</div>
+        <div class="moment-head">
+          <div class="moment-num">07</div>
+          <div>
+            <div class="moment-title">Market event client triage</div>
+            <div class="moment-kind">sense + recommend</div>
+          </div>
+        </div>
+        <div class="moment-body">
+          <span class="moment-tag">Journey moment</span>
+          When volatility hits, ranks all clients by likely anxiety level and drafts tailored reassurance messages
+          for advisor review. Turns a flood of inbound into a prioritized outbound.
+        </div>
+      </div>
+      <div class="moment ops" onclick="toggleMoment(this)">
+        <div class="moment-caret">▼</div>
+        <div class="moment-head">
+          <div class="moment-num">13</div>
+          <div>
+            <div class="moment-title">Compliance calendar guardian</div>
+            <div class="moment-kind">sense + synthesize</div>
+          </div>
+        </div>
+        <div class="moment-body">
+          <span class="moment-tag">Business-ops</span>
+          Tracks ADV, Form CRS, state renewals, GIPS reviews, and audit windows. Surfaces what's due,
+          prepares filings, reduces the risk of quietly missing a deadline.
+        </div>
+      </div>
+      <div class="moment ops" onclick="toggleMoment(this)">
+        <div class="moment-caret">▼</div>
+        <div class="moment-head">
+          <div class="moment-num">14</div>
+          <div>
+            <div class="moment-title">Team capacity & workload radar</div>
+            <div class="moment-kind">sense + recommend</div>
+          </div>
+        </div>
+        <div class="moment-body">
+          <span class="moment-tag">Business-ops</span>
+          Aggregates workload signals across the lean RIA team — meetings on the books, open plans,
+          overdue follow-ups — and recommends rebalancing.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Slide 6 · Phase 05 Life event response ──────────────────── -->
+  <section class="slide">
+    <div class="phase-hero">
+      <div class="phase-num">05</div>
+      <div class="phase-title-block">
+        <div class="phase-kicker">Phase 05 · When life happens — and speed equals trust</div>
+        <h1 class="phase-title">Life event response</h1>
+      </div>
+    </div>
+    <p class="phase-summary">
+      Job changes, divorces, inheritances, medical diagnoses, home sales, deaths, births.
+      These are the moments where a financial plan gets tested against reality.
+      The hardest problem isn't speed — it's detection. Most life events are discovered when the client calls to report them, often weeks late.
+    </p>
+
+    <div class="tracks">
+      <div class="track advisor">
+        <div class="track-label"><span class="track-dot"></span>Advisor</div>
+        <div class="track-item">
+          <div class="track-item-title"><span class="track-num">01</span>Detect the signal</div>
+          <div class="track-item-body">Usually learned via client call, not system. The highest risk of miss — and the highest emotional cost when the advisor finds out late.</div>
+        </div>
+        <div class="track-item">
+          <div class="track-item-title"><span class="track-num">02</span>Re-model the plan</div>
+          <div class="track-item-body">Rework cash flow, tax implications, insurance coverage, beneficiaries. Turn a life change into a revised plan quickly.</div>
+        </div>
+        <div class="track-item">
+          <div class="track-item-title"><span class="track-num">03</span>Execute</div>
+          <div class="track-item-body">Move money, adjust allocations, file paperwork, coordinate with accountant and attorney. Speed matters to the client; precision matters to compliance.</div>
+        </div>
+      </div>
+      <div class="track client">
+        <div class="track-label"><span class="track-dot"></span>Client</div>
+        <div class="track-item">
+          <div class="track-item-title"><span class="track-num">01</span>Disrupted & overwhelmed</div>
+          <div class="track-item-body">Life just changed. Needs guidance fast. Doesn't know what questions to ask. Needs the advisor to ask them instead.</div>
+        </div>
+        <div class="track-item">
+          <div class="track-item-title"><span class="track-num">02</span>Emotional load</div>
+          <div class="track-item-body">Grief, fear, excitement, anger — depending on the event. Financial logic is a second-order concern until the first-order feeling is acknowledged.</div>
+        </div>
+        <div class="track-item">
+          <div class="track-item-title"><span class="track-num">03</span>Urgency</div>
+          <div class="track-item-body">Wants a response now. Doesn't know how long the advisor's queue is. Reads silence as abandonment.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="zone">
+      <div class="zone-label">Intersection zone</div>
+      <div class="zone-title">Urgency mismatch</div>
+      <div class="zone-body">
+        Client needs a response now. Advisor is managing many other households. Speed equals trust —
+        not because the answer has to be immediate, but because the acknowledgment has to be.
+      </div>
+    </div>
+
+    <div class="moments-head">
+      <strong>AI + augmented opportunities in this phase</strong>
+      <span class="moments-hint">click a card to expand</span>
+    </div>
+    <div class="moments">
+      <div class="moment ai" onclick="toggleMoment(this)">
+        <div class="moment-caret">▼</div>
+        <div class="moment-head">
+          <div class="moment-num">08</div>
+          <div>
+            <div class="moment-title">Life event signal detection</div>
+            <div class="moment-kind">sense + recommend</div>
+          </div>
+        </div>
+        <div class="moment-body">
+          <span class="moment-tag">Journey moment</span>
+          Watches external signals — LinkedIn job changes, public records, news mentions, transaction patterns —
+          and surfaces probable life events before the client has to pick up the phone.
+          Advisor decides whether and how to reach out.
+        </div>
+      </div>
+      <div class="moment ai" onclick="toggleMoment(this)">
+        <div class="moment-caret">▼</div>
+        <div class="moment-head">
+          <div class="moment-num">09</div>
+          <div>
+            <div class="moment-title">Rapid plan adjustment brief</div>
+            <div class="moment-kind">sense + recommend</div>
+          </div>
+        </div>
+        <div class="moment-body">
+          <span class="moment-tag">Journey moment</span>
+          When a client reports an event, agent models impact on plan, tax, insurance, and beneficiary structure.
+          Delivers a one-page brief the advisor can walk through on the call. Turns a week of rework into an hour.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Slide 7 · Phase 06 Review & growth ──────────────────────── -->
+  <section class="slide">
+    <div class="phase-hero">
+      <div class="phase-num">06</div>
+      <div class="phase-title-block">
+        <div class="phase-kicker">Phase 06 · Looking back, looking forward, deciding together</div>
+        <h1 class="phase-title">Review &amp; growth</h1>
+      </div>
+    </div>
+    <p class="phase-summary">
+      The annual punctuation of the relationship. For the advisor, it's the moment to synthesize the year
+      and set up the next. For the client, it's the moment to decide — consciously or not — whether this is still
+      the right advisor. Also the natural moment for referral conversations and deepening the relationship.
+    </p>
+
+    <div class="tracks">
+      <div class="track advisor">
+        <div class="track-label"><span class="track-dot"></span>Advisor</div>
+        <div class="track-item">
+          <div class="track-item-title"><span class="track-num">01</span>Annual plan update</div>
+          <div class="track-item-body">Full portfolio rebalance, tax review, updated IPS, compliance docs. Synthesis of a year's worth of notes, meetings, and drift into a fresh plan.</div>
+        </div>
+        <div class="track-item">
+          <div class="track-item-title"><span class="track-num">02</span>Referral & growth</div>
+          <div class="track-item-body">Ask for introductions at the right moment. Identify clients whose life stage just changed to warrant deeper advice.</div>
+        </div>
+        <div class="track-item">
+          <div class="track-item-title"><span class="track-num">03</span>Practice review</div>
+          <div class="track-item-body">Honest look at book health, revenue mix, capacity, and where next year's growth will come from.</div>
+        </div>
+      </div>
+      <div class="track client">
+        <div class="track-label"><span class="track-dot"></span>Client</div>
+        <div class="track-item">
+          <div class="track-item-title"><span class="track-num">01</span>Reassessment</div>
+          <div class="track-item-body">Am I better off than last year? Is my plan still right for where my life is going? Rarely articulated — usually felt.</div>
+        </div>
+        <div class="track-item">
+          <div class="track-item-title"><span class="track-num">02</span>Loyalty test</div>
+          <div class="track-item-body">Subconsciously comparing the relationship to alternatives. A single clunky review can loosen a long-held trust.</div>
+        </div>
+        <div class="track-item">
+          <div class="track-item-title"><span class="track-num">03</span>Forward pull</div>
+          <div class="track-item-body">Wants to feel the plan is ambitious, not just preserving. Retirement isn't only about not running out — it's about what life looks like on the way there.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="zone">
+      <div class="zone-label">Intersection zone</div>
+      <div class="zone-title">Ambition gap</div>
+      <div class="zone-body">
+        Client wants to grow — financially and in life. Advisor defaults to maintenance and risk management.
+        Design opportunity: prompts and formats that make the annual review a forward-looking conversation,
+        not a backwards-looking report.
+      </div>
+    </div>
+
+    <div class="moments-head">
+      <strong>AI + augmented opportunities in this phase</strong>
+      <span class="moments-hint">click a card to expand</span>
+    </div>
+    <div class="moments">
+      <div class="moment ai" onclick="toggleMoment(this)">
+        <div class="moment-caret">▼</div>
+        <div class="moment-head">
+          <div class="moment-num">10</div>
+          <div>
+            <div class="moment-title">Annual review auto-package</div>
+            <div class="moment-kind">sense + synthesize</div>
+          </div>
+        </div>
+        <div class="moment-body">
+          <span class="moment-tag">Journey moment</span>
+          Compiles year performance, goal progress, life events logged, plan changes, and tax moves
+          into a client-ready deck. Advisor adds narrative and sends.
+        </div>
+      </div>
+      <div class="moment ai" onclick="toggleMoment(this)">
+        <div class="moment-caret">▼</div>
+        <div class="moment-head">
+          <div class="moment-num">11</div>
+          <div>
+            <div class="moment-title">Referral opportunity spotter</div>
+            <div class="moment-kind">sense + recommend</div>
+          </div>
+        </div>
+        <div class="moment-body">
+          <span class="moment-tag">Journey moment</span>
+          Flags the right moment to ask — after a positive market quarter, a successful life event response,
+          or a completed planning milestone. Removes the awkward cold ask.
+        </div>
+      </div>
+      <div class="moment ops" onclick="toggleMoment(this)">
+        <div class="moment-caret">▼</div>
+        <div class="moment-head">
+          <div class="moment-num">15</div>
+          <div>
+            <div class="moment-title">Practice revenue risk monitor</div>
+            <div class="moment-kind">sense + recommend</div>
+          </div>
+        </div>
+        <div class="moment-body">
+          <span class="moment-tag">Business-ops</span>
+          Runs a continuous practice P&amp;L model: projects fee revenue, capacity utilization,
+          and concentration risk. Flags clients likely to churn and book segments under-served.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Slide 8 · Six intersection zones ────────────────────────── -->
+  <section class="slide">
+    <div class="phase-kicker">2.1 · The six intersection zones</div>
+    <h1 class="phase-title" style="font-size:44px;">Where trust is made,<br>tested, or lost.</h1>
+    <p class="phase-summary">
+      Across the journey, the advisor and client experience the same events from different emotional positions.
+      These are the six places where design has the highest leverage.
+    </p>
+
+    <div class="zones-grid">
+      <div class="zsum">
+        <div class="zsum-kicker">Phase 01 · Prospecting</div>
+        <div class="zsum-title">Trust is forming</div>
+        <div class="zsum-body">Advisor is selling. Client is evaluating. Neither says what they actually want. A small, well-placed signal of preparation can close the gap.</div>
+      </div>
+      <div class="zsum">
+        <div class="zsum-kicker">Phase 02 · Onboarding</div>
+        <div class="zsum-title">The silent transfer window</div>
+        <div class="zsum-body">Days 10–20 are peak client anxiety and peak advisor inactivity. Proactive, low-effort communication here is one of the highest-leverage interventions in the whole journey.</div>
+      </div>
+      <div class="zsum">
+        <div class="zsum-kicker">Phase 03 · Discovery & plan</div>
+        <div class="zsum-title">Vulnerability peak</div>
+        <div class="zsum-body">Client shares real fears. Advisor must hold emotional space and simultaneously capture structured data. Over-engineered capture tools actively get in the way.</div>
+      </div>
+      <div class="zsum">
+        <div class="zsum-kicker">Phase 04 · Ongoing relationship</div>
+        <div class="zsum-title">Silent drift</div>
+        <div class="zsum-body">Client forgets details. Advisor forgets context. The relationship coasts on goodwill until a review forces re-anchoring. Reduce the cost of remembering, not the frequency of review.</div>
+      </div>
+      <div class="zsum">
+        <div class="zsum-kicker">Phase 05 · Life event response</div>
+        <div class="zsum-title">Urgency mismatch</div>
+        <div class="zsum-body">Client needs a response now. Advisor is managing many households. Speed equals trust — not because the answer has to be immediate, but because the acknowledgment has to be.</div>
+      </div>
+      <div class="zsum">
+        <div class="zsum-kicker">Phase 06 · Review & growth</div>
+        <div class="zsum-title">Ambition gap</div>
+        <div class="zsum-body">Client wants to grow. Advisor defaults to maintenance. Design for forward-looking conversations, not backwards-looking reports.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Slide 10 · Matrix: design opportunities at a glance ─────── -->
+  <section class="slide matrix-slide">
+    <div class="phase-kicker">2.2 · Design opportunities at a glance</div>
+    <h1 class="phase-title">15 moments for design opportunities,<br>mapped across six phases.</h1>
+
+    <div class="matrix-wrap">
+      <table class="matrix">
+        <thead>
+          <tr>
+            <th class="matrix-rowhead" style="background:transparent;"></th>
+            <th class="matrix-colhead">01</th>
+            <th class="matrix-colhead">02</th>
+            <th class="matrix-colhead">03</th>
+            <th class="matrix-colhead">04</th>
+            <th class="matrix-colhead">05</th>
+            <th class="matrix-colhead">06</th>
+            <th class="matrix-colhead">07</th>
+            <th class="matrix-colhead">08</th>
+            <th class="matrix-colhead">09</th>
+            <th class="matrix-colhead">10</th>
+            <th class="matrix-colhead">11</th>
+            <th class="matrix-colhead ops-head">12</th>
+            <th class="matrix-colhead ops-head">13</th>
+            <th class="matrix-colhead ops-head">14</th>
+            <th class="matrix-colhead ops-head">15</th>
+            <th class="matrix-total-label">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr class="matrix-row">
+            <th class="matrix-rowhead">
+              <div class="mr-num">Phase 01</div>
+              <div class="mr-title">Prospecting</div>
+            </th>
+            <td class="matrix-cell filled journey" data-title="01 · Prospect intelligence brief" onclick="goTo(9)"><span class="matrix-cell-num">01</span></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell filled ops" data-title="12 · Pipeline re-engagement radar" onclick="goTo(9)"><span class="matrix-cell-num">12</span></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-total">2</td>
+          </tr>
+
+          <tr class="matrix-row">
+            <th class="matrix-rowhead">
+              <div class="mr-num">Phase 02</div>
+              <div class="mr-title">Onboarding</div>
+            </th>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell filled journey" data-title="02 · Onboarding status monitor" onclick="goTo(10)"><span class="matrix-cell-num">02</span></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-total">1</td>
+          </tr>
+
+          <tr class="matrix-row">
+            <th class="matrix-rowhead">
+              <div class="mr-num">Phase 03</div>
+              <div class="mr-title">Discovery &amp; plan</div>
+            </th>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell filled journey" data-title="03 · Discovery call synthesis" onclick="goTo(12)"><span class="matrix-cell-num">03</span></td>
+            <td class="matrix-cell filled journey" data-title="04 · Risk profile anomaly flag" onclick="goTo(12)"><span class="matrix-cell-num">04</span></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-total">2</td>
+          </tr>
+
+          <tr class="matrix-row hot-row">
+            <th class="matrix-rowhead">
+              <div class="mr-num">Phase 04</div>
+              <div class="mr-title">Ongoing relationship</div>
+            </th>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell filled journey" data-title="05 · Meeting prep package" onclick="goTo(13)"><span class="matrix-cell-num">05</span></td>
+            <td class="matrix-cell filled journey" data-title="06 · Quiet client early warning" onclick="goTo(13)"><span class="matrix-cell-num">06</span></td>
+            <td class="matrix-cell filled journey" data-title="07 · Market event client triage" onclick="goTo(13)"><span class="matrix-cell-num">07</span></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell filled ops" data-title="13 · Compliance calendar guardian" onclick="goTo(13)"><span class="matrix-cell-num">13</span></td>
+            <td class="matrix-cell filled ops" data-title="14 · Team capacity & workload radar" onclick="goTo(13)"><span class="matrix-cell-num">14</span></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-total hot">5</td>
+          </tr>
+
+          <tr class="matrix-row">
+            <th class="matrix-rowhead">
+              <div class="mr-num">Phase 05</div>
+              <div class="mr-title">Life event response</div>
+            </th>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell filled journey" data-title="08 · Life event signal detection" onclick="goTo(14)"><span class="matrix-cell-num">08</span></td>
+            <td class="matrix-cell filled journey" data-title="09 · Rapid plan adjustment brief" onclick="goTo(14)"><span class="matrix-cell-num">09</span></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-total">2</td>
+          </tr>
+
+          <tr class="matrix-row">
+            <th class="matrix-rowhead">
+              <div class="mr-num">Phase 06</div>
+              <div class="mr-title">Review &amp; growth</div>
+            </th>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell filled journey" data-title="10 · Annual review auto-package" onclick="goTo(15)"><span class="matrix-cell-num">10</span></td>
+            <td class="matrix-cell filled journey" data-title="11 · Referral opportunity spotter" onclick="goTo(15)"><span class="matrix-cell-num">11</span></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell"></td>
+            <td class="matrix-cell filled ops" data-title="15 · Practice revenue risk monitor" onclick="goTo(15)"><span class="matrix-cell-num">15</span></td>
+            <td class="matrix-total">3</td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+
+    <div class="matrix-legend">
+      <div class="leg-item"><span class="leg-swatch journey"></span>Journey moments (01–11) — client-facing agentic opportunities</div>
+      <div class="leg-item"><span class="leg-swatch ops"></span>Business-ops moments (12–15) — practice-level agents behind the advisor</div>
+    </div>
+
+    <div class="matrix-takeaway">
+      Phase 04 — the steady state — carries <strong>5 of the 15 moments</strong>.
+      It's where the advisor's time most quietly disappears, and where intelligent assistance has the most hours to give back.
+      <em style="opacity:0.75; font-style:normal; margin-left:6px;">Hover a cell for the moment · click to jump to its phase.</em>
+    </div>
+  </section>
+
+</div>
+
+<!-- ── Overview modal ─────────────────────────────────────────────── -->
+<div class="overview" id="overview">
+  <button class="overview-close" onclick="closeOverview()">Close ✕</button>
+  <h2>Journey at a glance — click to jump</h2>
+  <div class="overview-grid" id="overview-grid"></div>
+</div>
+
+<div class="foot">
+  <div>
+    <span class="key">◀</span><span class="key">▶</span> navigate &nbsp;·&nbsp;
+    <span class="key">Space</span> next &nbsp;·&nbsp;
+    <span class="key">O</span> overview &nbsp;·&nbsp;
+    <span class="key">Esc</span> close
+  </div>
+  <div>RIA POC · Journey Map · v0.2</div>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const rail = document.getElementById('rail');
+  const cur = document.getElementById('cur');
+  const tot = document.getElementById('tot');
+  let current = 0;
+
+  tot.textContent = slides.length;
+
+  // Slide labels for overview
+  const slideLabels = [
+    { num: 'Cover', title: 'Project Overview + Journey Map', body: 'Reimagining the Registered Investment Advisor experience.' },
+    { num: '1.1', title: 'The mission', body: 'Lose the operational drag. Return time to the work only a human can do.' },
+    { num: '1.2', title: 'Goals', body: 'Five primary goals the POC must prove. Three multipliers that make it differentiated.' },
+    { num: '1.3', title: 'The RIA', body: 'Three roles, one person. Planner, relationship manager, and business owner in the same chair.' },
+    { num: '1.4', title: 'Pain points', body: 'Five places where the day works against the advisor.' },
+    { num: '1.5', title: 'How might we', body: 'Four wide-open statements that anchor the work.' },
+    { num: '1.6', title: 'Design principles', body: 'Tiebreakers when tradeoffs show up — the rules we design by.' },
+    { num: '1.7', title: 'Success', body: 'Time reclaimed, relationships deepened, a prototype that proves the pattern.' },
+    { num: '2.0', title: 'How to read the journey map', body: 'Two tracks, intersection zones, three diagnostic layers.' },
+    { num: 'Phase 01', title: 'Prospecting', body: 'First touchpoints through signed agreement. Trust is forming.' },
+    { num: 'Phase 02', title: 'Onboarding', body: 'Signed agreement through first month. The silent transfer window.' },
+    { num: 'Zoom-in', title: '30-day transfer timeline', body: 'Day by day, what the client feels during the peak-anxiety window.' },
+    { num: 'Phase 03', title: 'Discovery & plan', body: 'Building the complete financial picture. Vulnerability peak.' },
+    { num: 'Phase 04', title: 'Ongoing relationship', body: 'Quarterlies, drift, memory. Silent drift.' },
+    { num: 'Phase 05', title: 'Life event response', body: 'When life happens. Urgency mismatch.' },
+    { num: 'Phase 06', title: 'Review & growth', body: 'Looking back, looking forward. Ambition gap.' },
+    { num: '2.1', title: 'Six intersection zones', body: 'Where trust is made, tested, or lost.' },
+    { num: '2.2', title: 'Design opportunities at a glance', body: '15 moments for design opportunities, mapped across six phases. Hover any cell for the moment, click to jump to its phase.' }
+  ];
+
+  // Build rail
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'rail-dot';
+    d.onclick = () => goTo(i);
+    d.title = slideLabels[i].num + ' · ' + slideLabels[i].title;
+    rail.appendChild(d);
+  });
+  updateRail();
+
+  // Build overview grid
+  const ovGrid = document.getElementById('overview-grid');
+  slideLabels.forEach((lbl, i) => {
+    const c = document.createElement('div');
+    c.className = 'ov-card';
+    c.innerHTML = `
+      <div class="ov-num">${lbl.num}</div>
+      <div class="ov-title">${lbl.title}</div>
+      <div class="ov-body">${lbl.body}</div>
+    `;
+    c.onclick = () => { closeOverview(); goTo(i); };
+    ovGrid.appendChild(c);
+  });
+
+  function updateRail() {
+    const dots = rail.querySelectorAll('.rail-dot');
+    dots.forEach((d, i) => {
+      d.classList.toggle('active', i === current);
+      d.classList.toggle('seen', i < current);
+    });
+    cur.textContent = current + 1;
+  }
+
+  function goTo(i) {
+    if (i < 0 || i >= slides.length) return;
+    slides[current].classList.remove('active');
+    current = i;
+    slides[current].classList.add('active');
+    slides[current].scrollTop = 0;
+    updateRail();
+  }
+  function next() { goTo(Math.min(current + 1, slides.length - 1)); }
+  function prev() { goTo(Math.max(current - 1, 0)); }
+
+  function toggleMoment(el) {
+    el.classList.toggle('open');
+  }
+  function openOverview() { document.getElementById('overview').classList.add('open'); }
+  function closeOverview() { document.getElementById('overview').classList.remove('open'); }
+
+  document.addEventListener('keydown', (e) => {
+    const ov = document.getElementById('overview');
+    if (e.key === 'Escape') {
+      if (ov.classList.contains('open')) closeOverview();
+      return;
+    }
+    if (ov.classList.contains('open')) return;
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+      e.preventDefault(); next();
+    }
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+      e.preventDefault(); prev();
+    }
+    if (e.key === 'o' || e.key === 'O') { openOverview(); }
+    if (e.key === 'Home') goTo(0);
+    if (e.key === 'End') goTo(slides.length - 1);
+  });
+</script>
+
+</body>
+</html>
